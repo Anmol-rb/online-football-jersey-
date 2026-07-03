@@ -1,0 +1,22 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Anmol",
+      "age": 22,
+      "course": "BCA"
+    },
+    {
+      "id": 2,
+      "name": "Ram",
+      "age": 21,
+      "course": "BBA"
+    },
+    {
+      "id": 3,
+      "name": "Sita",
+      "age": 22,
+      "course": "BIT"
+    }
+  ]
+}
