@@ -55,7 +55,7 @@ function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
 
       // Step 1: Initiate Khalti payment (bypassed version)
       const paymentResult = await initiatePayment(
-        grandTotal * 100,  // Amount in paisa
+        grandTotal,
         orderId,
         currentUser,
         cartItems
@@ -190,6 +190,7 @@ function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
       </div>
 
       {/* ========== CONFIRMATION MODAL ========== */}
+      {/* ========== CONFIRMATION MODAL ========== */}
       {showConfirm && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -204,10 +205,52 @@ function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
               </div>
               <p className="payment-note">🔒 You will pay securely via Khalti</p>
             </div>
-            <div className="modal-actions">
-              <button className="modal-cancel-btn" onClick={cancelOrder}>Cancel</button>
-              <button className="modal-confirm-btn" onClick={confirmOrder}>
-                Pay with Khalti →
+            <div className="modal-actions" style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="modal-cancel-btn"
+                onClick={cancelOrder}
+                style={{
+                  flex: 1,
+                  padding: '12px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid #ccc',
+                  background: '#f5f5f5',
+                  color: '#333',
+                  fontWeight: 600,
+                  fontSize: '15px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="modal-confirm-btn"
+                onClick={confirmOrder}
+                disabled={isProcessing}
+                style={{
+                  flex: 1,
+                  padding: '12px 20px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#5C2D91', // Khalti brand purple
+                  color: '#fff',
+                  fontWeight: 600,
+                  fontSize: '15px',
+                  cursor: isProcessing ? 'not-allowed' : 'pointer',
+                  opacity: isProcessing ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <img
+                  src="/assets/khalti-logo.png"
+                  alt=""
+                  style={{ width: '18px', height: '18px', objectFit: 'contain' }}
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+                {isProcessing ? 'Processing...' : 'Pay with Khalti →'}
               </button>
             </div>
           </div>

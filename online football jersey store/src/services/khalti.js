@@ -1,59 +1,54 @@
-// Khalti service - Simplified Working Version
+import axios from 'axios';
 
-const KHALTI_PUBLIC_KEY = 'pk_test_7d2127d3b13441a7bc3d11b9e4166daa';
+// ==== Config ====
+// Backend base URL — hardcoded as requested (no frontend .env).
+// Change this if your backend port/host changes.
+const API_BASE_URL = 'http://localhost:5002/api';
 
-export const initiatePayment = (amount, orderId, user, items) => {
-    return new Promise((resolve, reject) => {
-        try {
-            // Create Khalti payment URL - Using the correct format
-            const khaltiUrl = new URL('https://khalti.com/payment/pay/');
-            
-            const params = {
-                amount: amount,
-                order_id: orderId,
-                product_identity: 'jerseyhub_order',
-                product_name: 'Jersey Hub Order',
-                product_url: 'http://localhost:5174/',
-                public_key: KHALTI_PUBLIC_KEY
-            };
+export const initiatePayment = async (amount, orderId, user, items) => {
+    try {
+        const token = localStorage.getItem('token');
 
-            Object.keys(params).forEach(key => 
-                khaltiUrl.searchParams.append(key, params[key])
-            );
+        const response = await axios.post(
+            `${API_BASE_URL}/khalti/initiate`,
+            {
+                amount, // send as rupees — backend converts to paisa
+                orderId,
+                productName: items?.length ? `Order #${orderId} (${items.length} items)` : 'Jersey Hub Order',
+                customerInfo: {
+                    name: user?.name,
+                    email: user?.email,
+                    phone: user?.phone,
+                },
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`, // matches your verifyToken middleware
+                    'Content-Type': 'application/json',
+                },
+            },
+        );
 
-            console.log('💰 Opening Khalti payment...');
+        if (response.data.success && response.data.payment_url) {
+            console.log('💰 Redirecting to Khalti payment page...');
             console.log('📦 Order ID:', orderId);
-            console.log('🔗 URL:', khaltiUrl.toString());
+            console.log('🔗 pidx:', response.data.pidx);
 
-            // Open Khalti in new window
-            const khaltiWindow = window.open(
-                khaltiUrl.toString(), 
-                '_blank', 
-                'width=500,height=600,scrollbars=yes'
-            );
+            // Full-page redirect — Khalti's hosted checkout is not a popup flow anymore
+            window.location.href = response.data.payment_url;
 
-            if (!khaltiWindow) {
-                reject(new Error('Popup blocked. Please allow popups.'));
-                return;
-            }
-
-            // For now, resolve after 3 seconds (for testing)
-            setTimeout(() => {
-                resolve({
-                    success: true,
-                    token: 'test_token_' + Date.now(),
-                    orderId: orderId,
-                    message: 'Payment simulated'
-                });
-            }, 3000);
-
-        } catch (error) {
-            console.error('❌ Khalti error:', error);
-            reject(error);
+            // Nothing to resolve here since the browser is navigating away.
+            // The promise just confirms the redirect was triggered.
+            return { redirecting: true };
         }
-    });
+
+        throw new Error(response.data.message || 'Payment initiation failed');
+    } catch (error) {
+        console.error('❌ Khalti error:', error.response?.data || error.message);
+        throw error;
+    }
 };
 
 export default {
-    initiatePayment
+    initiatePayment,
 };
