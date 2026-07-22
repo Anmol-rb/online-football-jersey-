@@ -12,7 +12,6 @@ import AdminOrders from './pages/admin/AdminOrders';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminLogin from './pages/admin/AdminLogin';
 import { getProducts } from './services/api';
-import AdminTeams from './pages/admin/AdminTeams';
 import './App.css';
 
 // Image URLs from public folder
@@ -44,6 +43,33 @@ function App() {
     const [loading, setLoading] = useState(true);
     const [apiError, setApiError] = useState(false);
 
+    // Handle Khalti callback
+    useEffect(() => {
+        const handleKhaltiCallback = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const paymentSuccess = urlParams.get('payment_success');
+            const paymentId = urlParams.get('payment_id');
+            const orderId = urlParams.get('order_id');
+
+            if (paymentSuccess && paymentId) {
+                // Payment successful
+                sessionStorage.setItem('khalti_payment_complete', JSON.stringify({
+                    token: paymentId,
+                    orderId: orderId,
+                    success: true
+                }));
+                
+                // Clean URL (remove query params)
+                window.history.replaceState({}, '', window.location.pathname);
+                
+                alert('✅ Payment successful! Your order has been placed.');
+            }
+        };
+
+        handleKhaltiCallback();
+    }, []);
+
+    // Fetch products from backend
     useEffect(() => {
         const fetchProducts = async () => {
             try {
@@ -75,6 +101,7 @@ function App() {
         fetchProducts();
     }, []);
 
+    // Check if user is logged in
     useEffect(() => {
         const token = localStorage.getItem('token');
         const user = localStorage.getItem('currentUser');
@@ -107,6 +134,7 @@ function App() {
         setIsLoggedIn(false);
     };
 
+    // Admin Route Guard
     const AdminRoute = ({ children }) => {
         if (!isLoggedIn || currentUser?.role !== 'admin') {
             return <div className="access-denied">
@@ -198,12 +226,6 @@ function App() {
                             <AdminUsers />
                         </AdminRoute>
                     } />
-
-                    <Route path="/admin/teams" element={
-    <AdminRoute>
-        <AdminTeams />
-    </AdminRoute>
-} />
                 </Routes>
             </CartProvider>
         </BrowserRouter>

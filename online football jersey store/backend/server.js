@@ -8,15 +8,16 @@ const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
 const cartRoutes = require('./routes/cart');
-const teamRoutes = require('./routes/teams');  // ← ADD THIS
+const teamRoutes = require('./routes/teams');
+const khaltiRoutes = require('./routes/khalti');  // ← ADD THIS
 
 // Initialize app
 const app = express();
 const PORT = process.env.PORT || 5002;
 
-// ============ CORS - Allow All Origins (For Development) ============
+// CORS
 app.use(cors({
-    origin: '*',  // Allows all origins
+    origin: '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -32,7 +33,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
-app.use('/api/teams', teamRoutes);  // ← ADD THIS
+app.use('/api/teams', teamRoutes);
+app.use('/api/khalti', khaltiRoutes);  // ← ADD THIS
 
 // Home route
 app.get('/', (req, res) => {
@@ -44,7 +46,8 @@ app.get('/', (req, res) => {
             products: '/api/products',
             orders: '/api/orders',
             cart: '/api/cart',
-            teams: '/api/teams'  // ← ADD THIS
+            teams: '/api/teams',
+            khalti: '/api/khalti'
         }
     });
 });
@@ -79,7 +82,5 @@ app.listen(PORT, () => {
     console.log(`   - PUT    /api/cart/:id      (Update cart)`);
     console.log(`   - DELETE /api/cart/:id      (Remove from cart)`);
     console.log(`   - GET    /api/teams         (All teams)`);
-    console.log(`   - POST   /api/teams         (Admin only)`);
-    console.log(`   - PUT    /api/teams/:id     (Admin only)`);
-    console.log(`   - DELETE /api/teams/:id     (Admin only)`);
+    console.log(`   - POST   /api/khalti/verify (Verify payment)`);  // ← ADD THIS
 });

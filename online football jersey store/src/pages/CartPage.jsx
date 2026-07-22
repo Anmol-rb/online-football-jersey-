@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { createOrder } from '../services/api';
+import { initiatePayment } from '../services/khalti';
 
 function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
   const { cartItems, updateQuantity, removeFromCart, getCartTotal, clearCart } = useCart();
@@ -10,23 +11,32 @@ function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleCheckout = () => {
+    // Check if user is logged in
     if (!isLoggedIn) {
       setShowLogin(true);
       return;
     }
 
+    // Check if cart is empty
     if (cartItems.length === 0) {
       alert('Your cart is empty!');
       return;
     }
 
+    // Show confirmation modal
     setShowConfirm(true);
   };
 
   const confirmOrder = async () => {
-    setIsProcessing(true);
     setShowConfirm(false);
+    setIsProcessing(true);
 
+    // Calculate totals
+    const subtotal = getCartTotal();
+    const shipping = subtotal > 1500 ? 0 : 150;
+    const grandTotal = subtotal + shipping;
+
+    // Prepare order items
     const orderItems = cartItems.map(item => ({
       id: item.product_id || item.id,
       name: item.name,
@@ -35,22 +45,41 @@ function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
       quantity: item.quantity || 1
     }));
 
-    const total = getCartTotal();
+    // Generate order ID
+    const orderId = `ORDER_${Date.now()}`;
 
     try {
-      const response = await createOrder({
+      console.log('🟢 Starting checkout...');
+      console.log('📦 Order ID:', orderId);
+      console.log('💰 Total:', grandTotal);
+
+      // Step 1: Initiate Khalti payment (bypassed version)
+      const paymentResult = await initiatePayment(
+        grandTotal * 100,  // Amount in paisa
+        orderId,
+        currentUser,
+        cartItems
+      );
+
+      console.log('🟢 Payment result:', paymentResult);
+
+      // Step 2: Create order in database
+      const orderResponse = await createOrder({
         items: orderItems,
-        total: total
+        total: grandTotal,
+        paymentStatus: 'Pending'
       });
 
-      if (response.data.success) {
-        alert(`✅ Order placed successfully! Order ID: #${response.data.orderId}`);
+      if (orderResponse.data.success) {
+        alert(`✅ Order placed successfully! Order ID: #${orderResponse.data.orderId}`);
         await clearCart();
         navigate('/');
+      } else {
+        alert('❌ Failed to place order. Please try again.');
       }
     } catch (error) {
-      console.error('Order error:', error);
-      alert('❌ Failed to place order. Please try again.');
+      console.error('❌ Order error:', error);
+      alert('❌ Payment failed or cancelled. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -62,6 +91,7 @@ function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
 
   return (
     <div className="container">
+      {/* Navigation Bar */}
       <nav className="navbar">
         <div className="nav-brand">
           <Link to="/" style={{ textDecoration: 'none', color: 'white', display: 'flex', alignItems: 'center' }}>
@@ -82,6 +112,7 @@ function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
         </div>
       </nav>
 
+      {/* Cart Page */}
       <div className="cart-page">
         <h1>YOUR CART 🛒</h1>
         <div className="cart-line"></div>
@@ -93,6 +124,7 @@ function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
           </div>
         ) : (
           <>
+            {/* Cart Items */}
             <div className="cart-items">
               {cartItems.map((item, index) => (
                 <div key={index} className="cart-item">
@@ -133,6 +165,7 @@ function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
               ))}
             </div>
             
+            {/* Order Summary */}
             <div className="cart-summary">
               <h3>Order Summary</h3>
               <div className="summary-row">
@@ -162,16 +195,20 @@ function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
           <div className="modal-content">
             <h2>Confirm Order</h2>
             <div className="modal-body">
-              <p>Are you sure you want to place this order?</p>
+              <p>You will be redirected to Khalti for payment.</p>
               <div className="order-details">
                 <p><strong>Total Items:</strong> {cartItems.length}</p>
+                <p><strong>Subtotal:</strong> Rs. {getCartTotal().toLocaleString('en-IN')}</p>
+                <p><strong>Shipping:</strong> {getCartTotal() > 1500 ? 'FREE' : 'Rs. 150'}</p>
                 <p><strong>Total Amount:</strong> Rs. {(getCartTotal() + (getCartTotal() > 1500 ? 0 : 150)).toLocaleString('en-IN')}</p>
               </div>
-              <p className="payment-note">💳 Payment will be collected on delivery.</p>
+              <p className="payment-note">🔒 You will pay securely via Khalti</p>
             </div>
             <div className="modal-actions">
               <button className="modal-cancel-btn" onClick={cancelOrder}>Cancel</button>
-              <button className="modal-confirm-btn" onClick={confirmOrder}>Confirm Order</button>
+              <button className="modal-confirm-btn" onClick={confirmOrder}>
+                Pay with Khalti →
+              </button>
             </div>
           </div>
         </div>

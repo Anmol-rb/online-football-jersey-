@@ -88,4 +88,10 @@ export const updateTeam = (id, teamData) => api.put(`/teams/${id}`, teamData);
 // Delete team (Admin only)
 export const deleteTeam = (id) => api.delete(`/teams/${id}`);
 
+// ============ KHALTI APIs ============
+
+// Verify Khalti payment
+export const verifyPayment = (token, amount, orderId) => 
+    api.post('/khalti/verify', { token, amount, orderId });
+
 export default api;
