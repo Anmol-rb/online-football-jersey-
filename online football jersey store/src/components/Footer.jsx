@@ -23,7 +23,7 @@ function Footer() {
         </div>
       </div>
       <div className="footer-bottom">
-        <p>&copy; 2024 JERSEY HUB | BCA 5th Semester - MIS Project</p>
+        <p>&copy; 2026 JERSEY HUB | BCA 5th Semester - MIS Project</p>
         <p>Technology Stack: React.js | Node.js | MySQL</p>
         <p>📍 Online Football Jersey Store - Nepal</p>
       </div>

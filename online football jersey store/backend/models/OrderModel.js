@@ -31,11 +31,27 @@ class OrderModel {
         return rows;
     }
 
-    async updateStatus(orderId, status) {
-        const sql = 'UPDATE orders SET status = ? WHERE id = ?';
-        const [result] = await db.query(sql, [status, orderId]);
-        return result.affectedRows > 0;
-    }
+    async findAll() {
+    const sql = `
+        SELECT o.id, o.total, o.status, o.payment_status, o.items, o.created_at,
+               u.fullName, u.email
+        FROM orders o
+        JOIN users u ON o.user_id = u.id
+        ORDER BY o.created_at DESC
+    `;
+    const [rows] = await db.query(sql);
+    // items is stored as JSON text — parse it so the frontend gets a real array
+    return rows.map(row => ({
+        ...row,
+        items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items
+    }));
+}
+
+async updateStatus(id, status) {
+    const sql = 'UPDATE orders SET status = ? WHERE id = ?';
+    const [result] = await db.query(sql, [status, id]);
+    return result.affectedRows > 0;
+}
 
     async updatePaymentStatus(orderId, paymentStatus) {
         const sql = 'UPDATE orders SET payment_status = ? WHERE id = ?';

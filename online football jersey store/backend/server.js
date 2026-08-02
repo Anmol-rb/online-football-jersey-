@@ -9,7 +9,9 @@ const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
 const cartRoutes = require('./routes/cart');
 const teamRoutes = require('./routes/teams');
-const khaltiRoutes = require('./routes/khalti');  // ← ADD THIS
+const khaltiRoutes = require('./routes/khalti');
+const userRoutes = require('./routes/userRoutes');
+
 
 // Initialize app
 const app = express();
@@ -34,7 +36,8 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/teams', teamRoutes);
-app.use('/api/khalti', khaltiRoutes);  // ← ADD THIS
+app.use('/api/khalti', khaltiRoutes);
+app.use('/api/users', userRoutes);  
 
 // Home route
 app.get('/', (req, res) => {

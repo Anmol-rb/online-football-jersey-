@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { CartProvider } from './context/CartContext';
+import { CartProvider, useCart } from './context/CartContext';
 import HomePage from './pages/HomePage';
 import ShopPage from './pages/ShopPage';
 import CollectionPage from './pages/CollectionPage';
@@ -11,6 +11,8 @@ import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminLogin from './pages/admin/AdminLogin';
+import AdminTeams from './pages/admin/AdminTeams';
+import MyOrders from './pages/MyOrders';
 import { getProducts } from './services/api';
 import './App.css';
 
@@ -35,13 +37,16 @@ const fallbackProducts = [
     { id: 8, name: 'Netherlands Jersey', price: 3599, team: 'Netherlands', player: 'Virgil van Dijk', sizes: ['S', 'M', 'L', 'XL', 'XXL'], image: vandijkImg, badge: 'SALE' },
 ];
 
-function App() {
+// Lives INSIDE CartProvider so it can use useCart()
+function AppContent() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const [showLogin, setShowLogin] = useState(false);
     const [products, setProducts] = useState(fallbackProducts);
     const [loading, setLoading] = useState(true);
     const [apiError, setApiError] = useState(false);
+
+    const { resetCart } = useCart();
 
     // Handle Khalti callback
     useEffect(() => {
@@ -52,20 +57,15 @@ function App() {
             const orderId = urlParams.get('order_id');
 
             if (paymentSuccess && paymentId) {
-                // Payment successful
                 sessionStorage.setItem('khalti_payment_complete', JSON.stringify({
                     token: paymentId,
                     orderId: orderId,
                     success: true
                 }));
-                
-                // Clean URL (remove query params)
                 window.history.replaceState({}, '', window.location.pathname);
-                
                 alert('✅ Payment successful! Your order has been placed.');
             }
         };
-
         handleKhaltiCallback();
     }, []);
 
@@ -97,7 +97,6 @@ function App() {
                 setLoading(false);
             }
         };
-
         fetchProducts();
     }, []);
 
@@ -132,6 +131,7 @@ function App() {
         localStorage.removeItem('currentUser');
         setCurrentUser(null);
         setIsLoggedIn(false);
+        resetCart(); // clears displayed cart count/items on logout, doesn't delete saved cart
     };
 
     // Admin Route Guard
@@ -151,82 +151,107 @@ function App() {
     }
 
     return (
+        <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={
+                <HomePage
+                    products={products}
+                    loading={loading}
+                    apiError={apiError}
+                    isLoggedIn={isLoggedIn}
+                    currentUser={currentUser}
+                    handleLogout={handleLogout}
+                    setShowLogin={setShowLogin}
+                />
+            } />
+
+            <Route path="/shop" element={
+                <ShopPage
+                    products={products}
+                    loading={loading}
+                    apiError={apiError}
+                    isLoggedIn={isLoggedIn}
+                    currentUser={currentUser}
+                    handleLogout={handleLogout}
+                    setShowLogin={setShowLogin}
+                />
+            } />
+
+            <Route path="/collection" element={
+                <CollectionPage
+                    products={products}
+                    loading={loading}
+                    apiError={apiError}
+                    isLoggedIn={isLoggedIn}
+                    currentUser={currentUser}
+                    handleLogout={handleLogout}
+                    setShowLogin={setShowLogin}
+                />
+            } />
+
+            <Route path="/cart" element={
+                <CartPage
+                    isLoggedIn={isLoggedIn}
+                    currentUser={currentUser}
+                    handleLogout={handleLogout}
+                    setShowLogin={setShowLogin}
+                />
+            } />
+
+            <Route path="/my-orders" element={
+                <MyOrders
+                    isLoggedIn={isLoggedIn}
+                    currentUser={currentUser}
+                    handleLogout={handleLogout}
+                    setShowLogin={setShowLogin}
+                />
+            } />
+
+            {/* Admin Login */}
+            <Route path="/admin-login" element={
+                <AdminLogin onAdminLogin={handleAdminLogin} />
+            } />
+
+            {/* Admin Routes - Protected */}
+            <Route path="/admin/dashboard" element={
+                <AdminRoute>
+                    <AdminDashboard />
+                </AdminRoute>
+            } />
+
+            <Route path="/admin/products" element={
+                <AdminRoute>
+                    <AdminProducts />
+                </AdminRoute>
+            } />
+
+            <Route path="/admin/orders" element={
+                <AdminRoute>
+                    <AdminOrders />
+                </AdminRoute>
+            } />
+
+            <Route path="/admin/users" element={
+                <AdminRoute>
+                    <AdminUsers />
+                </AdminRoute>
+            } />
+
+            <Route path="/admin/teams" element={
+                <AdminRoute>
+                    <AdminTeams />
+                </AdminRoute>
+            } />
+        </Routes>
+    );
+}
+
+// Outer App just sets up providers/router, then renders AppContent
+function App() {
+    return (
         <BrowserRouter>
             <CartProvider>
-                <Routes>
-                    <Route path="/" element={
-                        <HomePage
-                            products={products}
-                            loading={loading}
-                            apiError={apiError}
-                            isLoggedIn={isLoggedIn}
-                            currentUser={currentUser}
-                            handleLogout={handleLogout}
-                            setShowLogin={setShowLogin}
-                        />
-                    } />
-                    
-                    <Route path="/shop" element={
-                        <ShopPage
-                            products={products}
-                            loading={loading}
-                            apiError={apiError}
-                            isLoggedIn={isLoggedIn}
-                            currentUser={currentUser}
-                            handleLogout={handleLogout}
-                            setShowLogin={setShowLogin}
-                        />
-                    } />
-                    
-                    <Route path="/collection" element={
-                        <CollectionPage
-                            products={products}
-                            loading={loading}
-                            apiError={apiError}
-                            isLoggedIn={isLoggedIn}
-                            currentUser={currentUser}
-                            handleLogout={handleLogout}
-                            setShowLogin={setShowLogin}
-                        />
-                    } />
-                    
-                    <Route path="/cart" element={
-                        <CartPage
-                            isLoggedIn={isLoggedIn}
-                            currentUser={currentUser}
-                            handleLogout={handleLogout}
-                            setShowLogin={setShowLogin}
-                        />
-                    } />
-                    
-                    <Route path="/admin-login" element={
-                        <AdminLogin onAdminLogin={handleAdminLogin} />
-                    } />
-                    
-                    <Route path="/admin/dashboard" element={
-                        <AdminRoute>
-                            <AdminDashboard />
-                        </AdminRoute>
-                    } />
-                    
-                    <Route path="/admin/products" element={
-                        <AdminRoute>
-                            <AdminProducts />
-                        </AdminRoute>
-                    } />
-                    
-                    <Route path="/admin/orders" element={
-                        <AdminRoute>
-                            <AdminOrders />
-                        </AdminRoute>
-                    } />
-                    
-                    <Route path="/admin/users" element={
-                        <AdminRoute>
-                            <AdminUsers />
-                        </AdminRoute>
-                    } />
-                </Routes>
+                <AppContent />
             </CartProvider>
         </BrowserRouter>
     );

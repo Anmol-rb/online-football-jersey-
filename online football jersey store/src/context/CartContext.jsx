@@ -37,7 +37,7 @@ export function CartProvider({ children }) {
         try {
             const response = await apiAddToCart(product.id, size, quantity);
             if (response.data.success) {
-                await loadCart(); // Reload cart to get the updated data with image
+                await loadCart();
                 return { success: true, message: 'Item added to cart' };
             }
             return { success: false, message: 'Failed to add item' };
@@ -46,10 +46,19 @@ export function CartProvider({ children }) {
         }
     };
 
-    // Update quantity
-    const updateQuantity = async (cartId, newQuantity) => {
+    // ============ UPDATE QUANTITY - FIXED ============
+    const updateQuantity = async (cartId, size, newQuantity) => {
+        if (newQuantity < 1) return;
+        
         try {
-            await updateCartItem(cartId, newQuantity);
+            // Find the cart item by id and size
+            const itemToUpdate = cartItems.find(item => item.id === cartId && item.size === size);
+            if (!itemToUpdate) {
+                console.error('Item not found in cart');
+                return;
+            }
+            
+            await updateCartItem(itemToUpdate.id, newQuantity);
             await loadCart();
         } catch (error) {
             console.error('Update quantity error:', error);
@@ -57,16 +66,23 @@ export function CartProvider({ children }) {
     };
 
     // Remove from cart
-    const removeFromCart = async (cartId) => {
+    const removeFromCart = async (cartId, size) => {
         try {
-            await removeCartItem(cartId);
+            // Find the cart item by id and size
+            const itemToRemove = cartItems.find(item => item.id === cartId && item.size === size);
+            if (!itemToRemove) {
+                console.error('Item not found in cart');
+                return;
+            }
+            
+            await removeCartItem(itemToRemove.id);
             await loadCart();
         } catch (error) {
             console.error('Remove from cart error:', error);
         }
     };
 
-    // Clear cart
+    // Clear cart — hits the backend and deletes the saved cart
     const clearCart = async () => {
         try {
             await apiClearCart();
@@ -74,6 +90,12 @@ export function CartProvider({ children }) {
         } catch (error) {
             console.error('Clear cart error:', error);
         }
+    };
+
+    // Reset cart locally only — no backend call
+    const resetCart = () => {
+        setCartItems([]);
+        setCartCount(0);
     };
 
     // Get total price
@@ -102,6 +124,7 @@ export function CartProvider({ children }) {
             removeFromCart,
             getCartTotal,
             clearCart,
+            resetCart,
             loadCart
         }}>
             {children}

@@ -1,29 +1,59 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createOrder } from '../services/api';
 import { initiatePayment } from '../services/khalti';
 
 function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
-  const { cartItems, updateQuantity, removeFromCart, getCartTotal, clearCart } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, getCartTotal, clearCart, loadCart } = useCart();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Payment result banner state
+  const [paymentResult, setPaymentResult] = useState(null);
+  const [resultOrderId, setResultOrderId] = useState(null);
+
+  // Handle redirect back from Khalti
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    const orderId = searchParams.get('orderId');
+
+    if (paymentStatus === 'success') {
+      setPaymentResult('success');
+      setResultOrderId(orderId);
+      clearCart();
+    } else if (paymentStatus === 'failed') {
+      setPaymentResult('failed');
+      setResultOrderId(orderId);
+      loadCart();
+    } else if (paymentStatus === 'error') {
+      setPaymentResult('error');
+      loadCart();
+    }
+
+    if (paymentStatus) {
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams]);
+
+  const dismissPaymentResult = () => {
+    setPaymentResult(null);
+    setResultOrderId(null);
+  };
+
   const handleCheckout = () => {
-    // Check if user is logged in
     if (!isLoggedIn) {
       setShowLogin(true);
       return;
     }
 
-    // Check if cart is empty
     if (cartItems.length === 0) {
       alert('Your cart is empty!');
       return;
     }
 
-    // Show confirmation modal
     setShowConfirm(true);
   };
 
@@ -31,56 +61,43 @@ function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
     setShowConfirm(false);
     setIsProcessing(true);
 
-    // Calculate totals
     const subtotal = getCartTotal();
     const shipping = subtotal > 1500 ? 0 : 150;
     const grandTotal = subtotal + shipping;
 
-    // Prepare order items
+    // ============ FIX: Include image in order items ============
     const orderItems = cartItems.map(item => ({
       id: item.product_id || item.id,
       name: item.name,
       price: item.price,
       size: item.size,
-      quantity: item.quantity || 1
+      quantity: item.quantity || 1,
+      image: item.image || '/assets/placeholder.jpg'  // ← ADDED IMAGE
     }));
 
-    // Generate order ID
-    const orderId = `ORDER_${Date.now()}`;
-
     try {
-      console.log('🟢 Starting checkout...');
-      console.log('📦 Order ID:', orderId);
-      console.log('💰 Total:', grandTotal);
-
-      // Step 1: Initiate Khalti payment (bypassed version)
-      const paymentResult = await initiatePayment(
-        grandTotal,
-        orderId,
-        currentUser,
-        cartItems
-      );
-
-      console.log('🟢 Payment result:', paymentResult);
-
-      // Step 2: Create order in database
+      // Step 1: Create order first
       const orderResponse = await createOrder({
         items: orderItems,
         total: grandTotal,
         paymentStatus: 'Pending'
       });
 
-      if (orderResponse.data.success) {
-        alert(`✅ Order placed successfully! Order ID: #${orderResponse.data.orderId}`);
-        await clearCart();
-        navigate('/');
-      } else {
-        alert('❌ Failed to place order. Please try again.');
+      if (!orderResponse.data.success) {
+        alert('❌ Failed to create order. Please try again.');
+        setIsProcessing(false);
+        return;
       }
+
+      const realOrderId = orderResponse.data.orderId;
+      console.log('🟢 Order created with ID:', realOrderId);
+
+      // Step 2: Initiate Khalti with the REAL order id
+      await initiatePayment(1, realOrderId, currentUser, cartItems);
+
     } catch (error) {
       console.error('❌ Order error:', error);
       alert('❌ Payment failed or cancelled. Please try again.');
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -111,6 +128,69 @@ function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
           )}
         </div>
       </nav>
+
+      {/* ========== PAYMENT RESULT BANNER ========== */}
+      {paymentResult && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ textAlign: 'center' }}>
+            {paymentResult === 'success' && (
+              <>
+                <div style={{ fontSize: '48px', marginBottom: '10px' }}>✅</div>
+                <h2>Payment Successful!</h2>
+                <p style={{ margin: '12px 0', color: '#555' }}>
+                  Your order has been placed{resultOrderId ? ` — Order ID: ${resultOrderId}` : ''}.
+                </p>
+                <p style={{ color: '#777', fontSize: '14px' }}>
+                  You'll receive a confirmation once your order is processed.
+                </p>
+              </>
+            )}
+
+            {paymentResult === 'failed' && (
+              <>
+                <div style={{ fontSize: '48px', marginBottom: '10px' }}>❌</div>
+                <h2>Payment Failed</h2>
+                <p style={{ margin: '12px 0', color: '#555' }}>
+                  Your payment could not be completed{resultOrderId ? ` for order ${resultOrderId}` : ''}.
+                </p>
+                <p style={{ color: '#777', fontSize: '14px' }}>
+                  Your items are still in your cart — you can try again.
+                </p>
+              </>
+            )}
+
+            {paymentResult === 'error' && (
+              <>
+                <div style={{ fontSize: '48px', marginBottom: '10px' }}>⚠️</div>
+                <h2>Something Went Wrong</h2>
+                <p style={{ margin: '12px 0', color: '#555' }}>
+                  We couldn't verify your payment status.
+                </p>
+                <p style={{ color: '#777', fontSize: '14px' }}>
+                  If you were charged, please contact support with your order details.
+                </p>
+              </>
+            )}
+
+            <button
+              onClick={dismissPaymentResult}
+              style={{
+                marginTop: '20px',
+                padding: '12px 32px',
+                borderRadius: '8px',
+                border: 'none',
+                background: paymentResult === 'success' ? '#0d9488' : '#5C2D91',
+                color: '#fff',
+                fontWeight: 600,
+                fontSize: '15px',
+                cursor: 'pointer'
+              }}
+            >
+              Back to Cart
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Cart Page */}
       <div className="cart-page">
@@ -190,7 +270,6 @@ function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
       </div>
 
       {/* ========== CONFIRMATION MODAL ========== */}
-      {/* ========== CONFIRMATION MODAL ========== */}
       {showConfirm && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -232,7 +311,7 @@ function CartPage({ isLoggedIn, currentUser, handleLogout, setShowLogin }) {
                   padding: '12px 20px',
                   borderRadius: '8px',
                   border: 'none',
-                  background: '#5C2D91', // Khalti brand purple
+                  background: '#5C2D91',
                   color: '#fff',
                   fontWeight: 600,
                   fontSize: '15px',

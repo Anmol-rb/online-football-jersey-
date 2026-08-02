@@ -33,6 +33,16 @@ class UserModel {
         const [result] = await db.query(sql, [fullName, phone, address, city, country, id]);
         return result.affectedRows > 0;
     }
+
+    async findAll() {
+    const sql = `
+        SELECT id, fullName, email, role, created_at 
+        FROM users 
+        ORDER BY created_at DESC
+    `;
+    const [rows] = await db.query(sql);
+    return rows;
+}
 }
 
 module.exports = new UserModel();

@@ -40,6 +40,12 @@ function Navbar({ searchTerm, setSearchTerm, setShowLogin, isLoggedIn, currentUs
           CART 🛒 {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
         </Link>
         
+        {/* My Orders Link - Only visible when logged in */}
+        {isLoggedIn && (
+          <Link to="/my-orders" className="orders-link">📋 ORDERS</Link>
+        )}
+        
+        {/* Admin Link - Only visible to admin users */}
         {isLoggedIn && currentUser?.role === 'admin' && (
           <Link to="/admin/dashboard" className="admin-link">👑 ADMIN</Link>
         )}

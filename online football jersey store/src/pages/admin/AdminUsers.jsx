@@ -1,18 +1,27 @@
 import { useState, useEffect } from 'react';
+import { getAllUsers } from '../../services/api';
 
 function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // Sample users for demo
-    const sampleUsers = [
-      { id: 1, fullName: 'John Doe', email: 'john@example.com', role: 'user', created_at: '2024-01-01' },
-      { id: 2, fullName: 'Jane Smith', email: 'jane@example.com', role: 'user', created_at: '2024-01-02' },
-      { id: 3, fullName: 'Admin User', email: 'admin@example.com', role: 'admin', created_at: '2024-01-01' }
-    ];
-    setUsers(sampleUsers);
-    setLoading(false);
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const response = await getAllUsers();
+        if (response.data.success) {
+          setUsers(response.data.users);
+        }
+      } catch (err) {
+        console.error('Failed to fetch users:', err);
+        setError('Failed to load users. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
   }, []);
 
   const handleLogout = () => {
@@ -32,6 +41,8 @@ function AdminUsers() {
         </button>
       </div>
 
+      {error && <div className="admin-error">{error}</div>}
+
       <div className="users-table">
         <table>
           <thead>
@@ -44,19 +55,25 @@ function AdminUsers() {
             </tr>
           </thead>
           <tbody>
-            {users.map(user => (
-              <tr key={user.id}>
-                <td>{user.id}</td>
-                <td>{user.fullName}</td>
-                <td>{user.email}</td>
-                <td>
-                  <span className={`role-badge ${user.role}`}>
-                    {user.role}
-                  </span>
-                </td>
-                <td>{user.created_at}</td>
+            {users.length === 0 ? (
+              <tr>
+                <td colSpan="5" style={{ textAlign: 'center' }}>No users found</td>
               </tr>
-            ))}
+            ) : (
+              users.map(user => (
+                <tr key={user.id}>
+                  <td>{user.id}</td>
+                  <td>{user.fullName}</td>
+                  <td>{user.email}</td>
+                  <td>
+                    <span className={`role-badge ${user.role}`}>
+                      {user.role}
+                    </span>
+                  </td>
+                  <td>{new Date(user.created_at).toLocaleDateString()}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

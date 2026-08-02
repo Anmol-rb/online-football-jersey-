@@ -1,7 +1,7 @@
 function Hero() {
   return (
     <div className="hero">
-      <div className="hero-badge">EST. 2024</div>
+      <div className="hero-badge">EST. 2026</div>
       <h1>JERSEY HUB</h1>
       <p>Elevate Your Game • Authentic Football Jerseys • Limited Edition</p>
       <button className="btn-primary" onClick={() => alert('Shop the collection!')}>
@@ -9,7 +9,7 @@ function Hero() {
       </button>
       <div className="hero-stats">
         <div className="stat">
-          <span className="stat-number">🏟️</span>
+          <span className="stat-number">🏟️</span>                     
           <span className="stat-label">Stadium Ready</span>
         </div>
         <div className="stat">

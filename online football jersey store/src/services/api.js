@@ -55,6 +55,15 @@ export const createOrder = (orderData) => api.post('/orders', orderData);
 // Get user's orders
 export const getMyOrders = () => api.get('/orders/my-orders');
 
+// ============ ADMIN ORDER APIs ============
+
+// Get all orders (Admin only)
+export const getAllOrders = () => api.get('/orders');
+
+// Update order status (Admin only)
+export const updateOrderStatus = (orderId, status) => 
+    api.put(`/orders/${orderId}/status`, { status });
+
 // ============ CART APIs ============
 
 // Get user's cart
@@ -74,6 +83,7 @@ export const removeCartItem = (cartId) =>
 
 // Clear cart (after order placed)
 export const clearCart = () => api.delete('/cart');
+
 // ============ TEAM APIs ============
 
 // Get all teams
@@ -87,6 +97,11 @@ export const updateTeam = (id, teamData) => api.put(`/teams/${id}`, teamData);
 
 // Delete team (Admin only)
 export const deleteTeam = (id) => api.delete(`/teams/${id}`);
+
+// ============ USER APIs ============
+
+// Get all users (Admin only)
+export const getAllUsers = () => api.get('/users');
 
 // ============ KHALTI APIs ============
 
