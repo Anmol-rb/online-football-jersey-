@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "src": "online football jersey store/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "online football jersey store/dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/online football jersey store/index.html"
+    }
+  ]
+}
